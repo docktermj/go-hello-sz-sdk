@@ -176,6 +176,8 @@ func main() {
 	booleans := []bool{true, false}
 	for _, isLocal := range booleans {
 
+		fmt.Printf("\n---- %t -----------------------------------------------------\n", isLocal)
+
 		// Get Senzing objects.
 
 		g2Config, g2Diagnostic, err := getSenzingObjects(ctx, isLocal)
