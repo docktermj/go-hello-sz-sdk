@@ -144,8 +144,12 @@ func demonstrateG2config(ctx context.Context, g2Config g2config.G2config) {
 	if err != nil {
 		fmt.Printf("g2Config.ListDataSources: %v\n", err)
 	}
-
 	fmt.Printf("Data Sources: %s\n", result)
+
+	err = g2Config.Close(ctx, configHandle)
+	if err != nil {
+		fmt.Printf("g2Config.Close: %v\n", err)
+	}
 }
 
 func demonstrateG2diagnostic(ctx context.Context, g2Diagnostic g2diagnostic.G2diagnostic) {
