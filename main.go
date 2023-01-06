@@ -5,11 +5,17 @@ import (
 	"fmt"
 
 	"github.com/senzing/g2-sdk-go-grpc/g2configclient"
+	"github.com/senzing/g2-sdk-go-grpc/g2configmgrclient"
 	"github.com/senzing/g2-sdk-go-grpc/g2diagnosticclient"
+	"github.com/senzing/g2-sdk-go-grpc/g2productclient"
 	"github.com/senzing/g2-sdk-go/g2config"
+	"github.com/senzing/g2-sdk-go/g2configmgr"
 	"github.com/senzing/g2-sdk-go/g2diagnostic"
+	"github.com/senzing/g2-sdk-go/g2product"
 	pbg2config "github.com/senzing/g2-sdk-proto/go/g2config"
+	pbg2configmgr "github.com/senzing/g2-sdk-proto/go/g2configmgr"
 	pbg2diagnostic "github.com/senzing/g2-sdk-proto/go/g2diagnostic"
+	pbg2product "github.com/senzing/g2-sdk-proto/go/g2product"
 	"github.com/senzing/go-helpers/g2engineconfigurationjson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -63,7 +69,36 @@ func getG2config(ctx context.Context, local bool) (g2config.G2config, error) {
 		fmt.Printf("Cannot Init. Error: %v\n", err)
 	}
 	return result, err
+}
 
+func getG2configmgr(ctx context.Context, local bool) (g2configmgr.G2configmgr, error) {
+	var result g2configmgr.G2configmgr
+
+	// Determine which instantiation of the G2Configinterface to create.
+
+	if local {
+		result = &g2configmgr.G2configmgrImpl{}
+
+	} else {
+		grpcConnection := getGrpcConnection()
+		result = &g2configmgrclient.G2configmgrClient{
+			GrpcClient: pbg2configmgr.NewG2ConfigMgrClient(grpcConnection),
+		}
+	}
+
+	// Initialize the object.
+
+	moduleName := "Test module name"
+	verboseLogging := 0
+	iniParams, err := g2engineconfigurationjson.BuildSimpleSystemConfigurationJson("")
+	if err != nil {
+		fmt.Printf("Cannot construct system configuration. Error: %v\n", err)
+	}
+	err = result.Init(ctx, moduleName, iniParams, verboseLogging)
+	if err != nil {
+		fmt.Printf("Cannot Init. Error: %v\n", err)
+	}
+	return result, err
 }
 
 func getG2diagnostic(ctx context.Context, local bool) (g2diagnostic.G2diagnostic, error) {
@@ -94,13 +129,47 @@ func getG2diagnostic(ctx context.Context, local bool) (g2diagnostic.G2diagnostic
 		fmt.Printf("Cannot Init. Error: %v\n", err)
 	}
 	return result, err
-
 }
 
-func getSenzingObjects(ctx context.Context, isLocal bool) (g2config.G2config, g2diagnostic.G2diagnostic, error) {
+func getG2product(ctx context.Context, local bool) (g2product.G2product, error) {
+	var result g2product.G2product
+
+	// Determine which instantiation of the G2Diagnostic interface to create.
+
+	if local {
+		result = &g2product.G2productImpl{}
+
+	} else {
+		grpcConnection := getGrpcConnection()
+		result = &g2productclient.G2productClient{
+			GrpcClient: pbg2product.NewG2ProductClient(grpcConnection),
+		}
+	}
+
+	// Initialize the object.
+
+	moduleName := "Test module name"
+	verboseLogging := 0
+	iniParams, err := g2engineconfigurationjson.BuildSimpleSystemConfigurationJson("")
+	if err != nil {
+		fmt.Printf("Cannot construct system configuration. Error: %v\n", err)
+	}
+	err = result.Init(ctx, moduleName, iniParams, verboseLogging)
+	if err != nil {
+		fmt.Printf("Cannot Init. Error: %v\n", err)
+	}
+	return result, err
+}
+
+func getSenzingObjects(ctx context.Context, isLocal bool) (g2config.G2config, g2configmgr.G2configmgr, g2diagnostic.G2diagnostic, g2product.G2product, error) {
 	g2Config, err := getG2config(ctx, isLocal)
 	if err != nil {
 		fmt.Printf("getG2config: %v", err)
+	}
+
+	g2Configmgr, err := getG2configmgr(ctx, isLocal)
+	if err != nil {
+		fmt.Printf("getG2configmgr: %v", err)
 	}
 
 	g2Diagnostic, err := getG2diagnostic(ctx, isLocal)
@@ -108,11 +177,16 @@ func getSenzingObjects(ctx context.Context, isLocal bool) (g2config.G2config, g2
 		fmt.Printf("getG2diagnostic: %v", err)
 	}
 
-	return g2Config, g2Diagnostic, err
+	g2Product, err := getG2product(ctx, isLocal)
+	if err != nil {
+		fmt.Printf("getG2digetG2productagnostic: %v", err)
+	}
+
+	return g2Config, g2Configmgr, g2Diagnostic, g2Product, err
 
 }
 
-func destroySenzingObjects(ctx context.Context, g2Config g2config.G2config, g2Diagnostic g2diagnostic.G2diagnostic) error {
+func destroySenzingObjects(ctx context.Context, g2Config g2config.G2config, g2Configmgr g2configmgr.G2configmgr, g2Diagnostic g2diagnostic.G2diagnostic, g2Product g2product.G2product) error {
 	var err error = nil
 
 	err = g2Config.Destroy(ctx)
@@ -152,18 +226,32 @@ func demonstrateG2config(ctx context.Context, g2Config g2config.G2config) {
 	}
 }
 
+func demonstrateG2configmgr(ctx context.Context, g2Configmgr g2configmgr.G2configmgr) {
+}
+
 func demonstrateG2diagnostic(ctx context.Context, g2Diagnostic g2diagnostic.G2diagnostic) {
 	result, err := g2Diagnostic.GetTotalSystemMemory(ctx)
 	if err != nil {
 		fmt.Printf("g2Diagnostic.GetTotalSystemMemory: %v\n", err)
 	}
 	fmt.Printf("Memory: %d\n", result)
+
+	result2, err := g2Diagnostic.CheckDBPerf(ctx, 10)
+	if err != nil {
+		fmt.Printf("Could not CheckDBPerf: %v\n", err)
+	}
+	fmt.Printf("CheckDBPerf: %s\n", result2)
 }
 
-func demonstrateSenzingObjects(ctx context.Context, g2Config g2config.G2config, g2Diagnostic g2diagnostic.G2diagnostic) error {
+func demonstrateG2product(ctx context.Context, g2Product g2product.G2product) {
+}
+
+func demonstrateSenzingObjects(ctx context.Context, g2Config g2config.G2config, g2Configmgr g2configmgr.G2configmgr, g2Diagnostic g2diagnostic.G2diagnostic, g2Product g2product.G2product) error {
 	var err error = nil
 	demonstrateG2config(ctx, g2Config)
+	demonstrateG2configmgr(ctx, g2Configmgr)
 	demonstrateG2diagnostic(ctx, g2Diagnostic)
+	demonstrateG2product(ctx, g2Product)
 	return err
 }
 
@@ -180,21 +268,21 @@ func main() {
 
 		// Get Senzing objects.
 
-		g2Config, g2Diagnostic, err := getSenzingObjects(ctx, isLocal)
+		g2Config, g2Configmgr, g2Diagnostic, g2Product, err := getSenzingObjects(ctx, isLocal)
 		if err != nil {
 			fmt.Printf("Error in getSenzingObjects: %v\n", err)
 		}
 
 		// Demonstrate Senzing objects.
 
-		err = demonstrateSenzingObjects(ctx, g2Config, g2Diagnostic)
+		err = demonstrateSenzingObjects(ctx, g2Config, g2Configmgr, g2Diagnostic, g2Product)
 		if err != nil {
 			fmt.Printf("Error in demonstrateSenzingObjects: %v\n", err)
 		}
 
 		// Destroy Senzing objects.
 
-		err = destroySenzingObjects(ctx, g2Config, g2Diagnostic)
+		err = destroySenzingObjects(ctx, g2Config, g2Configmgr, g2Diagnostic, g2Product)
 		if err != nil {
 			fmt.Printf("Error in destroySenzingObjects: %v\n", err)
 		}
