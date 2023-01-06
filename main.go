@@ -227,6 +227,12 @@ func demonstrateG2config(ctx context.Context, g2Config g2config.G2config) {
 }
 
 func demonstrateG2configmgr(ctx context.Context, g2Configmgr g2configmgr.G2configmgr) {
+
+	configID, err := g2Configmgr.GetDefaultConfigID(ctx)
+	if err != nil {
+		fmt.Printf("g2Configmgr.GetDefaultConfigID: %v\n", err)
+	}
+	fmt.Printf("Config ID: %d\n", configID)
 }
 
 func demonstrateG2diagnostic(ctx context.Context, g2Diagnostic g2diagnostic.G2diagnostic) {
@@ -244,6 +250,12 @@ func demonstrateG2diagnostic(ctx context.Context, g2Diagnostic g2diagnostic.G2di
 }
 
 func demonstrateG2product(ctx context.Context, g2Product g2product.G2product) {
+
+	result, err := g2Product.Version(ctx)
+	if err != nil {
+		fmt.Printf("g2Product.Version: %v\n", err)
+	}
+	fmt.Printf("Version: %s\n", result)
 }
 
 func demonstrateSenzingObjects(ctx context.Context, g2Config g2config.G2config, g2Configmgr g2configmgr.G2configmgr, g2Diagnostic g2diagnostic.G2diagnostic, g2Product g2product.G2product) error {
